@@ -1,0 +1,4 @@
+a.out
+sh.c
+t.sh
+x.txt
