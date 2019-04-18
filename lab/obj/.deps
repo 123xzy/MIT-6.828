@@ -1,0 +1,11 @@
+obj/kern/entry.o: kern/entry.S inc/mmu.h inc/memlayout.h
+obj/kern/console.o: kern/console.c inc/x86.h inc/types.h inc/memlayout.h \
+ inc/mmu.h inc/kbdreg.h inc/string.h inc/assert.h inc/stdio.h \
+ inc/stdarg.h kern/console.h
+obj/kern/init.o: kern/init.c inc/stdio.h inc/stdarg.h inc/string.h \
+ inc/types.h inc/assert.h kern/monitor.h kern/console.h
+obj/kern/entrypgdir.o: kern/entrypgdir.c inc/mmu.h inc/types.h \
+ inc/memlayout.h
+obj/kern/monitor.o: kern/monitor.c inc/stdio.h inc/stdarg.h inc/string.h \
+ inc/types.h inc/memlayout.h inc/mmu.h inc/assert.h inc/x86.h \
+ kern/console.h kern/monitor.h kern/kdebug.h
