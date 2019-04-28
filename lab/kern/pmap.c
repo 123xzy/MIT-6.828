@@ -131,7 +131,7 @@ mem_init(void)
 	i386_detect_memory();
 
 	// Remove this line when you're ready to test this function.
-	// panic("mem_init: This function is not finished\n");
+	panic("mem_init: This function is not finished\n");
 
 	//////////////////////////////////////////////////////////////////////
 	// create initial page directory.
@@ -270,8 +270,35 @@ page_init(void)
 	// Change the code to reflect this.
 	// NB: DO NOT actually touch the physical memory corresponding to
 	// free pages!
+	size_t i;
 	
+	// IOPHYSMEM:the start address of IO hole 
+	// io_hole:the index of IO hole in pages
+	size_t io_hole = (size_t)IOPHYSMEM / PGSIZE;
 
+	// boot_alloc(0):return the end address of kernel
+	// kernel_end:including [IOPHYSMEM,EXTPHYSMEM] and [EXTPHYSMEM,...]
+	size_t kernel_end = PADDR(boot_alloc(0)) / PGSIZE;
+
+	page_free_list = NULL;
+	for(i = 0;i < npages ;i++){
+		// mark physical page 0 as in use
+		if(i == 0){
+			pages[0].pp_ref = 1;
+			pages[0].pp_link = NULL;
+			continue;
+		}
+		// mark physical page [PGSIZE,npages_basemem * PGSIZE] as free
+		else if(i >= io_hole && i < kernel_end){
+			pages[i].pp_ref = 0;
+			pages[i].pp_link = NULL;
+		}
+		else{
+			pages[i].pp_ref = 0;
+			pages[i].pp_link = page_free_list;
+			page_free_list = &pages[i];
+		}
+	}
 }
 
 //
@@ -289,23 +316,39 @@ page_init(void)
 struct PageInfo *
 page_alloc(int alloc_flags)
 {
+	struct PageInfo *result;
+
+	// out of memory
+	if(page_free_list == NULL)
+		return NULL;
+	
+	result = page_free_list;
+	page_free_list = result->pp_link;
+
+	result->pp_link = NULL;
+
+	// page2kva:get virtual address by physical address(result)
+	if(alloc_flags & ALLOC_ZERO)
+		memset(page2kva(result),0,PGSIZE);
+	return result;
 }
 
-//
 // Return a page to the free list.
 // (This function should only be called when pp->pp_ref reaches 0.)
-//
 void
 page_free(struct PageInfo *pp)
 {
 	// Fill this function in
 	// Hint: You may want to panic if pp->pp_ref is nonzero or
 	// pp->pp_link is not NULL.
+	if(pp->pp_link != NULL || pp->pp_ref != 0)
+		panic("page still in used\n");
+	pp->pp_link = page_free_list;
+	page_free_list = pp;
 }
-//
+
 // Decrement the reference count on a page,
 // freeing it if there are no more refs.
-//
 void
 page_decref(struct PageInfo* pp)
 {
